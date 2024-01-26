@@ -23,30 +23,70 @@ while True:
         # Dapatkan landmark wajah
         landmarks = predictor(gray, face)
         
-        # Gambar titik landmark di wajah
-        for n in range(68):  # 68 merupakan jumlah landmark pada model ini
-            x = landmarks.part(n).x
-            y = landmarks.part(n).y
-            cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
-        
-        # Deteksi ekspresi bahagia
-        left_eye = (landmarks.part(36).x, landmarks.part(36).y, landmarks.part(39).x, landmarks.part(39).y)
-        right_eye = (landmarks.part(42).x, landmarks.part(42).y, landmarks.part(45).x, landmarks.part(45).y)
-        mouth = (landmarks.part(48).x, landmarks.part(48).y, landmarks.part(54).x, landmarks.part(54).y)
-        
-        # Menghitung rasio lebar mata terhadap tinggi mata
-        eye_aspect_ratio = ((right_eye[2] - right_eye[0] + left_eye[2] - left_eye[0]) /
-                            (2 * (right_eye[3] - right_eye[1] + left_eye[3] - left_eye[1])))
-        
-        # Menghitung rasio lebar mulut terhadap tinggi mulut
-        mouth_aspect_ratio = ((mouth[2] - mouth[0]) / (mouth[3] - mouth[1]))
-        
-        # Deteksi wajah bahagia jika rasio lebar mata dan rasio lebar mulut mencapai ambang tertentu
-        if eye_aspect_ratio > 0.25 and mouth_aspect_ratio > 0.4:
-            cv2.putText(frame, 'Bahagia!', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        # Tampilkan garis titik untuk deteksi wajah
+        x, y, w, h = face.left(), face.top(), face.width(), face.height()
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-    # Tampilkan hasil
-    cv2.imshow('Face Detection with Expression', frame)
+        # Menampilkan lekuk wajah
+        for i in range(68):
+            x, y = landmarks.part(i).x, landmarks.part(i).y
+            cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
+            
+            # Tampilkan garis menghubungkan landmark
+            if i < 16:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(i + 1).x, landmarks.part(i + 1).y), (255, 0, 0), 2)
+            elif i == 16:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(0).x, landmarks.part(0).y), (255, 0, 0), 2)
+            elif i < 26 or (i > 29 and i < 36):
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(i + 1).x, landmarks.part(i + 1).y), (255, 0, 0), 2)
+            elif i == 26 or i == 35:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(29).x, landmarks.part(29).y), (255, 0, 0), 2)
+            elif i < 48:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(i + 1).x, landmarks.part(i + 1).y), (255, 0, 0), 2)
+            elif i == 48:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(60).x, landmarks.part(60).y), (255, 0, 0), 2)
+            elif i < 60:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(i + 1).x, landmarks.part(i + 1).y), (255, 0, 0), 2)
+            elif i == 60:
+                cv2.line(frame, (landmarks.part(i).x, landmarks.part(i).y),
+                         (landmarks.part(48).x, landmarks.part(48).y), (255, 0, 0), 2)
+
+        # Menghitung rasio tinggi alis terhadap tinggi mata
+        eyebrow_height_ratio = ((landmarks.part(21).y - landmarks.part(17).y + landmarks.part(26).y - landmarks.part(22).y) /
+                                (2 * (landmarks.part(24).x - landmarks.part(20).x)))
+        
+        # Menghitung rasio tinggi mulut terhadap tinggi wajah
+        mouth_height_ratio = ((landmarks.part(54).y - landmarks.part(48).y) / (face.bottom() - face.top()))
+
+        # Menghitung rasio tinggi hidung terhadap tinggi wajah
+        nose_height_ratio = ((landmarks.part(27).y - landmarks.part(33).y) / (face.bottom() - face.top()))
+
+        # Menghitung rasio lebar mulut terhadap lebar wajah
+        mouth_width_ratio = ((landmarks.part(54).x - landmarks.part(48).x) / (landmarks.part(12).x - landmarks.part(4).x))
+
+        # Deteksi ekspresi wajah
+        expression = ""
+        if eyebrow_height_ratio > 0.06:
+            expression = 'Terkejut!'
+        elif mouth_height_ratio > 0.15:
+            expression = 'Senang!'
+        elif eyebrow_height_ratio < 0.02 and mouth_height_ratio < 0.1:
+            expression = 'Sedih!'
+        elif mouth_width_ratio > 0.3:
+            expression = 'Marah!'
+        else:
+            expression = 'Netral'
+
+        # Tampilkan hasil
+        cv2.putText(frame, expression, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.imshow('Face Detection with Expression', frame)
 
     # Hentikan loop jika pengguna menekan tombol 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
